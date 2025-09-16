@@ -1,0 +1,172 @@
+==================dataset=================
+
+mysql> select * from telecom_users;
++---------+--------------+------+-----------+-----------+---------------+--------------+-------------+-------+---------+
+| user_id | name         | age  | city      | plan_type | data_usage_gb | call_minutes | signup_date | churn | revenue |
++---------+--------------+------+-----------+-----------+---------------+--------------+-------------+-------+---------+
+|     101 | Rahul Verma  |   25 | Mumbai    | Prepaid   |          5.60 |          230 | 2023-01-15  | No    |  320.00 |
+|     102 | Anjali Rao   |   32 | Delhi     | Postpaid  |         15.20 |         1200 | 2022-11-05  | No    | 1200.00 |
+|     103 | Sameer Khan  |   29 | Bengaluru | Prepaid   |          2.10 |           80 | 2023-02-20  | Yes   |  150.00 |
+|     104 | Priya Nair   |   41 | Chennai   | Postpaid  |          8.90 |          560 | 2021-12-12  | No    |  800.00 |
+|     105 | Rohan Mehta  |   36 | Pune      | Prepaid   |          1.70 |           45 | 2023-03-10  | Yes   |   90.00 |
+|     106 | Kavita Joshi |   27 | Hyderabad | Prepaid   |         12.50 |          670 | 2022-09-25  | No    |  600.00 |
+|     107 | Amit Sharma  |   34 | Mumbai    | Postpaid  |         20.30 |         1450 | 2021-10-18  | No    | 2000.00 |
+|     108 | Neha Gupta   |   22 | Delhi     | Prepaid   |          0.90 |           30 | 2023-04-01  | Yes   |   50.00 |
+|     109 | Arjun Reddy  |   39 | Bengaluru | Postpaid  |          6.20 |          310 | 2021-07-22  | No    |  720.00 |
+|     110 | Meena Iyer   |   28 | Chennai   | Prepaid   |          3.30 |          150 | 2023-01-30  | No    |  250.00 |
++---------+--------------+------+-----------+-----------+---------------+--------------+-------------+-------+---------+
+
+#problem 1
+Find the second highest revenue user in each city.
+with ranked as (
+select 
+    user_id,
+    name,
+    city,
+    revenue,
+    dense_rank() over(partition by city order by revenue desc) as rnk,
+    count(*) over(partition by city) as cnt
+    from  telecom_users )
+select 
+    user_id,
+    name,
+    city,
+    revenue
+    from ranked 
+where rnk = 2 or cnt = 1
+;
+
+#problem 2
+List the users who have above-average revenue compared to the average revenue of their plan type.
+
+with cte as (
+select
+    user_id,
+    name,
+    plan_type,
+    revenue,
+    avg(revenue) over(partition by plan_type) as avg_revenue_per_plantype
+    from telecom_users)
+select 
+    user_id,
+    name,
+    plan_type,
+    revenue
+    from cte 
+where revenue > avg_revenue_per_plantype;
+
+#problem 3
+Find the top 2 users by call_minutes from each plan type.
+
+with ranked as (
+select 
+    user_id,
+    name,
+    plan_type,
+    call_minutes,
+    dense_rank() over(partition by plan_type order by call_minutes desc) as rnk
+    from  telecom_users )
+select 
+    user_id,
+    name,
+    plan_type,
+    call_minutes
+    from ranked 
+where rnk <=2
+;
+
+#problem 4
+Retrieve the city with the highest churn rate (churned users ÷ total users).
+
+with agg as (
+select
+    city,
+    count(*) as total_users,
+    count(case when churn = 'Yes' then 1 end) as churn_users,
+    round((count(case when churn = 'Yes' then 1 end) / count(*)) * 100,2) as percentage
+    from telecom_users
+    group by city
+),
+ranked as (
+select
+    city,
+    percentage,
+    dense_rank() over(order by percentage desc) as rnk
+from agg) 
+select 
+    city,
+    percentage
+from ranked 
+where rnk = 1;
+
+
+#problem 5
+Find all users who joined in the same month as the highest revenue user.
+
+with date as (
+select 
+    signup_date,
+    month(signup_date) as month,
+    year(signup_date) as year
+from telecom_users 
+where revenue = (select max(revenue) from telecom_users)
+) 
+select 
+    *
+from telecom_users 
+where month(signup_date) = (select month from date)
+and year(signup_date) = (select year from date);
+
+
+#optimized one
+WITH top_revenue AS (
+    SELECT signup_date
+    FROM telecom_users
+    WHERE revenue = (SELECT MAX(revenue) FROM telecom_users)
+)
+SELECT *
+FROM telecom_users u
+JOIN top_revenue t
+  ON MONTH(u.signup_date) = MONTH(t.signup_date)
+ AND YEAR(u.signup_date) = YEAR(t.signup_date);
+
+
+ #problem 6
+ Show the running total of revenue ordered by signup_date.
+
+select
+    *,
+    sum(revenue) over(order by signup_date) as running_revenue
+from telecom_users;
+
+#problem 7
+Find the user(s) with minimum data usage in each city, but only if their revenue is above 200.
+
+with ranked as (
+select 
+    *,
+    dense_rank() over(partition by city order by data_usage_gb) as rnk
+from telecom_users
+where revenue > 200
+)
+select 
+    user_id,
+    name,
+    city,
+    data_usage_gb,
+    revenue
+from ranked 
+where rnk = 1;
+
+#problem 8
+List users whose call_minutes rank is in the top 30% overall.
+
+with ranked as (
+select 
+    *,
+    (percent_rank() over(order by call_minutes desc)) * 100 as percentage
+from  telecom_users)
+select 
+    *
+from ranked 
+where percentage < 30;
