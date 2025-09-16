@@ -1,0 +1,14 @@
+problems to solve
+Find the revenue contribution (%) of each city to the total revenue.
+
+Retrieve all users who have lower call_minutes than every Postpaid user.
+
+Find the month with the maximum total data_usage and list all users who joined in that month.
+
+Get the difference between each user’s revenue and the city’s average revenue.
+
+Find users who joined before the average signup_date across all users.
+
+For each city, return the user with the earliest signup_date but above-average revenue (for that city).
+
+Get the top 3 cities with the highest average call_minutes, excluding users who churned.
