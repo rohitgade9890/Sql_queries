@@ -1,6 +1,8 @@
 problems to solve
 Find the revenue contribution (%) of each city to the total revenue.
 
+
+
 Retrieve all users who have lower call_minutes than every Postpaid user.
 
 Find the month with the maximum total data_usage and list all users who joined in that month.
