@@ -1,8 +1,6 @@
 problems to solve
 Find the revenue contribution (%) of each city to the total revenue.
 
-
-
 Retrieve all users who have lower call_minutes than every Postpaid user.
 
 Find the month with the maximum total data_usage and list all users who joined in that month.
@@ -14,3 +12,81 @@ Find users who joined before the average signup_date across all users.
 For each city, return the user with the earliest signup_date but above-average revenue (for that city).
 
 Get the top 3 cities with the highest average call_minutes, excluding users who churned.
+
+mysql> select * from telecom_users;
++---------+--------------+------+-----------+-----------+---------------+--------------+-------------+-------+---------+
+| user_id | name         | age  | city      | plan_type | data_usage_gb | call_minutes | signup_date | churn | revenue |
++---------+--------------+------+-----------+-----------+---------------+--------------+-------------+-------+---------+
+|     101 | Rahul Verma  |   25 | Mumbai    | Prepaid   |          5.60 |          230 | 2023-01-15  | No    |  320.00 |
+|     102 | Anjali Rao   |   32 | Delhi     | Postpaid  |         15.20 |         1200 | 2022-11-05  | No    | 1200.00 |
+|     103 | Sameer Khan  |   29 | Bengaluru | Prepaid   |          2.10 |           80 | 2023-02-20  | Yes   |  150.00 |
+|     104 | Priya Nair   |   41 | Chennai   | Postpaid  |          8.90 |          560 | 2021-12-12  | No    |  800.00 |
+|     105 | Rohan Mehta  |   36 | Pune      | Prepaid   |          1.70 |           45 | 2023-03-10  | Yes   |   90.00 |
+|     106 | Kavita Joshi |   27 | Hyderabad | Prepaid   |         12.50 |          670 | 2022-09-25  | No    |  600.00 |
+|     107 | Amit Sharma  |   34 | Mumbai    | Postpaid  |         20.30 |         1450 | 2021-10-18  | No    | 2000.00 |
+|     108 | Neha Gupta   |   22 | Delhi     | Prepaid   |          0.90 |           30 | 2023-04-01  | Yes   |   50.00 |
+|     109 | Arjun Reddy  |   39 | Bengaluru | Postpaid  |          6.20 |          310 | 2021-07-22  | No    |  720.00 |
+|     110 | Meena Iyer   |   28 | Chennai   | Prepaid   |          3.30 |          150 | 2023-01-30  | No    |  250.00 |
++---------+--------------+------+-----------+-----------+---------------+--------------+-------------+-------+---------+
+
+#problem 9
+Find the revenue contribution (%) of each city to the total revenue.
+with agg as (
+select
+    city,
+    sum(revenue) as city_revenue,
+    (select sum(revenue) from telecom_users) as total_revenue
+from telecom_users
+group by city)
+select
+    city,
+    round(city_revenue/total_revenue * 100 ,2)  as percent
+from agg;
+
+
+#problem 10
+Retrieve all users who have lower call_minutes than every Postpaid user.
+select 
+    *
+from telecom_users 
+where call_minutes < 
+(select min(call_minutes) 
+from telecom_users
+where plan_type = 'Postpaid');
+
+
+#problem 11
+#Find the month with the maximum total data_usage and list all users who joined in that month.
+
+with cte1 as (
+select 
+    sum(data_usage_gb) as total_revenue,
+    month(signup_date) as month_num,
+    year(signup_date) as year_num
+from telecom_users
+group by month(signup_date),year(signup_date))
+,max_month as (
+select 
+    month_num,
+    year_num
+from cte1 
+where total_revenue = (select max(total_revenue) from cte1)
+)
+select *
+from telecom_users 
+join max_month on month(signup_date) = month_num and
+year(signup_date) = year_num;
+
+
+#problem 12
+Get the difference between each user’s revenue and the city’s average revenue.
+
+SELECT 
+    user_id,
+    name,
+    city,
+    revenue,
+    ROUND(AVG(revenue) OVER (PARTITION BY city), 2) AS avg_city_revenue,
+    ROUND(revenue - AVG(revenue) OVER (PARTITION BY city), 2) AS diff_from_avg
+FROM telecom_users;
+ 
