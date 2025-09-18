@@ -90,3 +90,46 @@ SELECT
     ROUND(revenue - AVG(revenue) OVER (PARTITION BY city), 2) AS diff_from_avg
 FROM telecom_users;
  
+
+#problem 13
+Find users who joined before the average signup_date across all users.
+
+select 
+    * 
+from telecom_users 
+where signup_date > 
+(select avg(signup_date) from telecom_users);
+
+#problem 14
+For each city, return the user with the earliest signup_date but above-average revenue (for that city).
+
+with cte as (
+select 
+    user_id,
+    city,
+    signup_date,
+    revenue,
+    row_number() over(partition by city order by signup_date) as rnk,
+    avg(revenue) over(partition by city) as avg_city_revenue
+from telecom_users 
+)
+select
+    * 
+from cte
+where rnk = 1 and revenue > avg_city_revenue;
+
+#problem 15
+Get the top 3 cities with the highest average call_minutes, excluding users who churned.
+
+with ranked as (
+select
+    city,
+    row_number() over(order by avg(call_minutes) desc) as rnk,
+    avg(call_minutes)
+from telecom_users
+where churn = 'No'
+group by city
+)
+select * 
+from ranked
+where rnk <= 3;
