@@ -1,0 +1,70 @@
+#3. Retrieve employees who earn more than their 
+manager.
+
+select 
+    e.empname,
+    m.empname as managername,
+    e.salary as empsalary
+    m.salary as managersalary
+from emp e inner join emp m
+on e.mgrid=m.empid 
+and e.salary > m.salary;
+
+4. Count employees in each department having more 
+than 5 employees.
+
+select 
+    count(*) as cnt
+from employees
+group by department
+having count(*) > 5;
+
+5. Find employees who joined in the last 6 months.
+
+select
+    employees
+from emp
+where joindate > date_sub(current_date(),INTERVAL 6 MONTH);
+
+6. Get departments with no employees.
+
+select 
+    department_name
+from department left join employees 
+on employees.dept_id = department.dept_id
+where employees.empid is null;
+
+
+9. Find the longest consecutive streak of daily logins for
+each user.
+
+mysql> select * from user_logins;
++---------+------------+
+| user_id | login_date |
++---------+------------+
+|       1 | 2025-09-01 |
+|       1 | 2025-09-02 |
+|       1 | 2025-09-03 |
+|       1 | 2025-09-04 |
+|       1 | 2025-09-06 |
+|       1 | 2025-09-07 |
+|       2 | 2025-09-03 |
+|       2 | 2025-09-04 |
+|       3 | 2025-09-01 |
+|       3 | 2025-09-02 |
+|       3 | 2025-09-03 |
+|       3 | 2025-09-04 |
+|       3 | 2025-09-05 |
+|       4 | 2025-09-01 |
+|       4 | 2025-09-03 |
+|       4 | 2025-09-05 |
++---------+------------+
+
+with cte as (
+select
+    *,lag(login_date) over(partition by user_id order by login_date) as prev_login
+from user_logins
+)
+select user_id,
+    login_date
+from cte where login_date - prev_login = 1;
